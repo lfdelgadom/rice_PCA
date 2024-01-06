@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 )
 fig.dim = c(7, 4)
 library(pacman)
-pacman::p_load(tidyverse, DT, agriutilities, emmeans, multcomp, multcompView, 
+pacman::p_load(tidyverse, DT, agriutilities, 
                factoextra, FactoMineR, readxl, agriutilities)
 ```
 
