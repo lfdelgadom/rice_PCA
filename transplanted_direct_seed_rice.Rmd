@@ -1,0 +1,330 @@
+---
+title: "Direct seeded rice and transplanted rice"
+author: "Luis Fernando Delgado"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_download: true
+    theme: paper
+    df_print: tibble
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+fig.dim = c(7, 4)
+library(pacman)
+pacman::p_load(tidyverse, DT, agriutilities, emmeans, multcomp, multcompView, 
+               factoextra, FactoMineR, readxl, agriutilities)
+```
+
+# Loading data Direct seeded rice and transplanted rice
+
+```{r}
+transplanted <- read_excel("data/STAT DSR, TPR.xlsx", 
+    sheet = "TPR mean")
+
+Direct_seeded <- read_excel("data/STAT DSR, TPR.xlsx", 
+    sheet = "DSR mean")
+```
+
+# Correlation plot - Transplanted
+
+```{r}
+transplanted_cor <- gg_cor(
+  colours = c("red", "white", "blue"),
+  data = transplanted,
+  label_size = 3
+  )
+
+print(transplanted_cor)
+
+ggsave(paste0("images\\transplanted_cor", ".png"),
+    plot = transplanted_cor, units = "in", dpi = 300, width = 8, height = 6
+  )
+```
+
+# Correlation plot - Direct seeded
+
+```{r}
+Direct_seeded_cor <- gg_cor(
+  colours = c("red", "white", "blue"),
+  data = Direct_seeded,
+  label_size = 3
+  )
+
+print(Direct_seeded_cor)
+
+ggsave(paste0("images\\Direct_seeded_cor", ".png"),
+    plot = Direct_seeded_cor, units = "in", dpi = 300, width = 8, height = 6
+  )
+```
+
+# PCA Transplanted - Direct seeded
+
+```{r message=FALSE, warning=FALSE}
+pca_transplanted <- transplanted %>% dplyr::select(-Treatment) %>% 
+  column_to_rownames("Genotype") %>% PCA(scale.unit = T, graph = F)
+
+pca_direct_seeded <- Direct_seeded %>% dplyr::select(-Treatment) %>% 
+  column_to_rownames("Genotype") %>% PCA(scale.unit = T, graph = F)
+```
+
+## Correlation circle - Transplanted rice
+```{r}
+# VAR
+var_plot <- fviz_pca_var(pca_transplanted, col.var="contrib", repel = T) +
+  labs(title = "PCA transplanted rice")
+
+print(var_plot)
+
+ggsave(paste0("images/PCA_var_transplanted", ".png"), 
+       plot = var_plot, units = "in", dpi = 300, width = 8, height = 6)
+```
+
+## Correlation circle - Direct seeded rice
+```{r}
+# VAR
+var_plot_directed <- fviz_pca_var(pca_direct_seeded, col.var="contrib", repel = T) +
+  labs(title = "PCA direct seeded")
+
+print(var_plot_directed)
+
+ggsave(paste0("images/PCA_var_directed", ".png"), 
+       plot = var_plot_directed, units = "in", dpi = 300, width = 8, height = 6)
+```
+
+
+
+## Individuals Transplanted rice
+
+```{r}
+# IND
+IND_Transplanted_rice <- fviz_pca_ind(pca_transplanted, repel = T, alpha.ind = 0.3, col.ind = "grey20", labelsize = 2) +
+  ggtitle(paste0("Individuals - PCA - Transplanted rice"))
+
+print(IND_Transplanted_rice)
+
+ggsave(paste0("images/PCA_ind_Transplanted_rice", ".png"), 
+       plot = IND_Transplanted_rice, units = "in", dpi = 300, width = 8, height = 6)
+```
+
+## Individuals Direct seeded rice
+
+```{r}
+# IND
+IND_Direct_rice <- fviz_pca_ind(pca_direct_seeded, repel = T, alpha.ind = 0.3, col.ind = "grey20", labelsize = 2) +
+  ggtitle(paste0("Individuals - PCA - Direct seeded rice"))
+
+print(IND_Direct_rice)
+
+ggsave(paste0("images/PCA_ind_direct_rice", ".png"), 
+       plot = IND_Direct_rice, units = "in", dpi = 300, width = 8, height = 6)
+```
+
+## Biplot transplated rice
+
+```{r}
+BI_transplanted <- fviz_pca_biplot(pca_transplanted, repel = T, alpha.ind = 0.3, 
+                                   col.ind = "grey30", labelsize = 3, 
+                                   col.var = "black", geom = c("point")) +
+  ggtitle(paste0("Biplot - PCA - Transplanted rice")) 
+
+
+print(BI_transplanted)
+
+ggsave(paste0("images/biplot_transplanted", ".png"), 
+       plot = BI_transplanted, units = "in", dpi = 300, width = 8, height = 6)
+```
+
+## Biplot direct seeded rice
+
+```{r}
+BI_direct <- fviz_pca_biplot(pca_direct_seeded, repel = T, alpha.ind = 0.3, 
+                                   col.ind = "grey30", labelsize = 3, 
+                                   col.var = "black", geom = c("point")) +
+  ggtitle(paste0("Biplot - PCA - Direct seeded rice")) 
+
+
+print(BI_direct)
+
+ggsave(paste0("images/biplot_direct", ".png"), 
+       plot = BI_direct, units = "in", dpi = 300, width = 8, height = 6)
+```
+
+# Cluster analysis - Transplanted rice
+
+```{r warning=FALSE, message=FALSE}
+
+#cluster tree
+hcpc_transplanted <- HCPC(pca_transplanted, nb.clust = 0, method = "ward", graph = FALSE)
+
+cluster_transplated <- fviz_dend(hcpc_transplanted, 
+                                cex = 0.3, 
+                                palette = "lancet", 
+                                rect = TRUE, 
+                                rect_fill = TRUE, 
+                                rect_border = "lancet", 
+                                labels_track_height = 0.1, 
+                                horiz = T) +
+  ggtitle("Cluster Transplanted rice")
+
+print(cluster_transplated)
+
+ggsave(paste("images/cluster_transplanted_dend", ".png", sep = "_"), 
+       plot = cluster_transplated, units = "in", dpi = 300, width = 8, height = 6)
+          
+```
+
+## Cluster under PCA - Transplanted rice
+
+```{r message=FALSE, warning=FALSE}
+hcpc_pca_transplanted <- fviz_cluster(hcpc_transplanted,
+             repel = TRUE,
+             show.clust.cent = FALSE,
+             labelsize = 4,
+             ellipse.type = "convex") +
+  ggtitle("Cluster Transplanted rice")
+
+hcpc_pca_transplanted
+
+ggsave(paste("images/cluster_transplanted", ".png", sep = "_"), 
+       plot = hcpc_pca_transplanted, units = "in", dpi = 300, width = 8, height = 6)
+```
+
+## Significant variables in each cluster
+
+The significant variables are shown below. To understand this table, it is necessary to compare the mean in the category (cluster) to the overall population mean per variable.
+
+```{r}
+hcpc_transplanted$desc.var$quanti
+```
+
+# Cluster assignment to each genotype - Transplanted rice
+
+```{r}
+cluster_assigned <- hcpc_transplanted$data.clust
+
+cluster_assigned <- cluster_assigned %>% rownames_to_column("Genotype") %>% 
+  add_column("Treatment" = "transplanted") %>% 
+  dplyr::select(Genotype, Treatment, clust, everything()) %>% 
+  mutate(across(where(is.numeric), ~ round(., 2)))
+
+cluster_assigned %>% datatable(extensions = 'Buttons',
+            options = list(dom = 'Blfrtip', pageLength = 6, autoWidth = TRUE,
+                           buttons = c('copy', 'csv', 'excel'),
+                           lengthMenu = list(c(10,25,50,-1),
+                                             c(10,25,50,"All"))))
+
+```
+
+
+# Cluster analysis - Direct seeded rice
+
+```{r warning=FALSE, message=FALSE}
+
+#cluster tree
+hcpc_direct <- HCPC(pca_direct_seeded, nb.clust = 0, method = "ward", graph = FALSE)
+
+cluster_direct <- fviz_dend(hcpc_direct, 
+                                cex = 0.3, 
+                                palette = "lancet", 
+                                rect = TRUE, 
+                                rect_fill = TRUE, 
+                                rect_border = "lancet", 
+                                labels_track_height = 0.1, 
+                                horiz = T) +
+  ggtitle("Cluster Direct seeded rice")
+
+print(cluster_direct)
+
+ggsave(paste("images/cluster_Direct_dend", ".png", sep = "_"), 
+       plot = cluster_direct, units = "in", dpi = 300, width = 8, height = 6)
+          
+```
+
+## Cluster under PCA - Transplanted rice
+
+```{r message=FALSE, warning=FALSE}
+hcpc_pca_direct <- fviz_cluster(hcpc_direct,
+             repel = TRUE,
+             show.clust.cent = FALSE,
+             labelsize = 4,
+             ellipse.type = "convex") +
+  ggtitle("Cluster Direct seeded rice")
+
+hcpc_pca_direct
+
+ggsave(paste("images/cluster_direct", ".png", sep = "_"), 
+       plot = hcpc_pca_direct, units = "in", dpi = 300, width = 8, height = 6)
+```
+
+## Significant variables in each cluster - Direct seeded rice
+
+The significant variables are shown below. To understand this table, it is necessary to compare the mean in the category (cluster) to the overall population mean per variable. Direct seeded rice population formed 3 clusters
+
+```{r}
+hcpc_direct$desc.var$quanti
+```
+
+# Cluster assignment to each genotype - Transplanted rice
+
+```{r}
+cluster_assigned_diret <- hcpc_direct$data.clust
+
+cluster_assigned_diret <- cluster_assigned_diret %>% rownames_to_column("Genotype") %>% 
+  add_column("Treatment" = "Direct_seeded") %>% 
+  dplyr::select(Genotype, Treatment, clust, everything()) %>% 
+  mutate(across(where(is.numeric), ~ round(., 2)))
+
+cluster_assigned_diret %>% datatable(extensions = 'Buttons',
+            options = list(dom = 'Blfrtip', pageLength = 6, autoWidth = TRUE,
+                           buttons = c('copy', 'csv', 'excel'),
+                           lengthMenu = list(c(10,25,50,-1),
+                                             c(10,25,50,"All"))))
+
+
+
+```
+
+# Pull together both data sets
+
+```{r}
+both <- transplanted %>% bind_rows(Direct_seeded)
+
+pca_both <- both %>% dplyr::select(-c(Genotype)) %>% PCA(scale.unit = T, 
+                                                     graph = F, quali.sup = 1)
+```
+
+## Circle correlations both treatments
+```{r}
+
+both_treatment <- fviz_pca_ind(pca_both, label="none", habillage = 1, addEllipses=TRUE)
+
+print(both_treatment)
+
+ggsave(paste("images/ind_both_treatment", ".png", sep = "_"), 
+       plot = both_treatment, units = "in", dpi = 300, width = 8, height = 6)
+```
+
+## Biplot both treatments
+```{r}
+BI_both <- fviz_pca_biplot(pca_both, label="var", habillage=1,
+               addEllipses=TRUE, ellipse.level=0.95)
+
+print(BI_both)
+
+ggsave(paste("images/BI_both_treatment", ".png", sep = "_"), 
+       plot = BI_both, units = "in", dpi = 300, width = 8, height = 6)
+
+
+```
+
+
+
